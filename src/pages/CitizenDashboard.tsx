@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Leaf, Trash2, Recycle, LogOut, TrendingUp, Camera, MapPin } from "lucide-react";
+import { Leaf, Trash2, Recycle, LogOut, TrendingUp, Camera, MapPin, Wallet } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Camera as CapCamera, CameraResultType, CameraSource } from "@capacitor/camera";
@@ -14,6 +14,7 @@ const CitizenDashboard = () => {
   const navigate = useNavigate();
   const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
+  const [walletBalance, setWalletBalance] = useState(0);
   const [bags, setBags] = useState(1);
   const [bottles, setBottles] = useState(0);
   const [cans, setCans] = useState(0);
@@ -23,7 +24,7 @@ const CitizenDashboard = () => {
   const [stats, setStats] = useState({
     totalRequests: 0,
     totalRecycled: 0,
-    totalEarnings: 0,
+    totalRewards: 0,
   });
 
   useEffect(() => {
@@ -39,7 +40,7 @@ const CitizenDashboard = () => {
 
     setUser(user);
 
-    // Get profile
+    // Get profile with wallet balance
     const { data: profile } = await supabase
       .from("profiles")
       .select("*")
@@ -47,6 +48,7 @@ const CitizenDashboard = () => {
       .single();
 
     setProfile(profile);
+    setWalletBalance(profile?.wallet_balance || 0);
 
     // Get stats
     const { data: requests } = await supabase
@@ -60,12 +62,20 @@ const CitizenDashboard = () => {
       .eq("citizen_id", user.id);
 
     const totalRecycled = recycling?.reduce((sum, r) => sum + (r.bottles || 0) + (r.cans || 0), 0) || 0;
-    const totalEarnings = recycling?.reduce((sum, r) => sum + Number(r.reward_pkr), 0) || 0;
+    
+    // Get total rewards from wallet transactions
+    const { data: transactions } = await supabase
+      .from("wallet_transactions")
+      .select("amount_pkr")
+      .eq("user_id", user.id)
+      .in("transaction_type", ["waste_reward", "recycling_reward"]);
+
+    const totalRewards = transactions?.reduce((sum, t) => sum + Number(t.amount_pkr), 0) || 0;
 
     setStats({
       totalRequests: requests?.length || 0,
       totalRecycled,
-      totalEarnings,
+      totalRewards,
     });
   };
 
@@ -119,7 +129,6 @@ const CitizenDashboard = () => {
     }
 
     setLoading(true);
-    const cost = bags * 20;
 
     try {
       // Upload photo to storage
@@ -145,16 +154,18 @@ const CitizenDashboard = () => {
       const { error } = await supabase.from("waste_requests").insert({
         citizen_id: user.id,
         number_of_bags: bags,
-        cost_pkr: cost,
+        reward_pkr: 20, // Citizen will earn 20 PKR after verification
         latitude: location?.lat,
         longitude: location?.lng,
         address: location?.address,
         photo_url: photoUrl,
+        status: "pending",
+        verification_status: "pending",
       });
 
       if (error) throw error;
 
-      toast.success(`Pickup requested! Cost: ${cost} PKR`);
+      toast.success("Request submitted! You'll earn 20 PKR after cleanup is verified.");
       setBags(1);
       setPhoto(null);
       setLocation(null);
@@ -191,12 +202,13 @@ const CitizenDashboard = () => {
         citizen_id: user.id,
         bottles,
         cans,
+        total_items: bottles + cans,
         reward_pkr: reward,
       });
 
       if (error) throw error;
 
-      toast.success(`Recycling recorded! Reward: ${reward} PKR`);
+      toast.success(`Recycling recorded! Reward: ${reward} PKR (automatically added to your wallet)`);
       setBottles(0);
       setCans(0);
       checkUser();
@@ -239,7 +251,16 @@ const CitizenDashboard = () => {
 
       <div className="container mx-auto px-4 py-8">
         {/* Stats */}
-        <div className="grid md:grid-cols-3 gap-6 mb-8">
+        <div className="grid md:grid-cols-4 gap-6 mb-8">
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between pb-2">
+              <CardTitle className="text-sm font-medium">Wallet Balance</CardTitle>
+              <Wallet className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-green-600">{walletBalance} PKR</div>
+            </CardContent>
+          </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Total Pickups</CardTitle>
@@ -260,11 +281,11 @@ const CitizenDashboard = () => {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Rewards Earned</CardTitle>
+              <CardTitle className="text-sm font-medium">Total Rewards</CardTitle>
               <TrendingUp className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{stats.totalEarnings} PKR</div>
+              <div className="text-2xl font-bold">{stats.totalRewards} PKR</div>
             </CardContent>
           </Card>
         </div>
@@ -275,7 +296,7 @@ const CitizenDashboard = () => {
           <Card>
             <CardHeader>
               <CardTitle>Request Waste Pickup</CardTitle>
-              <CardDescription>Add photo and location for pickup</CardDescription>
+              <CardDescription>Report waste and earn 20 PKR reward!</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleRequestPickup} className="space-y-4">
@@ -328,15 +349,22 @@ const CitizenDashboard = () => {
                   )}
                 </div>
 
-                <div className="text-sm text-muted-foreground">
-                  Total Cost: <span className="font-bold text-foreground">{bags * 20} PKR</span>
+                <div className="bg-green-50 p-4 rounded-lg">
+                  <div className="flex justify-between items-center">
+                    <span className="font-semibold text-green-800">Your Reward:</span>
+                    <span className="text-2xl font-bold text-green-600">+20 PKR</span>
+                  </div>
+                  <p className="text-xs text-green-700 mt-1">
+                    Credited after cleanup verification
+                  </p>
                 </div>
+
                 <Button
                   type="submit"
                   className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90"
                   disabled={loading || !photo || !location}
                 >
-                  {loading ? "Requesting..." : "Request Pickup"}
+                  {loading ? "Requesting..." : "Submit Request"}
                 </Button>
               </form>
             </CardContent>

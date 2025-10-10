@@ -25,19 +25,19 @@ const Login = () => {
 
       if (error) throw error;
 
-      // Get user profile to determine role
-      const { data: profile } = await supabase
-        .from("profiles")
+      // Get user role from user_roles table
+      const { data: roleData } = await supabase
+        .from("user_roles")
         .select("role")
-        .eq("id", data.user.id)
+        .eq("user_id", data.user.id)
         .single();
 
       toast.success("Login successful!");
 
       // Redirect based on role
-      if (profile?.role === "admin") {
+      if (roleData?.role === "admin") {
         navigate("/admin");
-      } else if (profile?.role === "cleaning_team") {
+      } else if (roleData?.role === "team_leader" || roleData?.role === "team_member") {
         navigate("/team");
       } else {
         navigate("/dashboard");

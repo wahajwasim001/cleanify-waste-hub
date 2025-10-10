@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Leaf, LogOut, CheckCircle, Clock, DollarSign } from "lucide-react";
+import { Leaf, LogOut, CheckCircle, Clock, DollarSign, Camera } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Camera as CapCamera, CameraResultType, CameraSource } from "@capacitor/camera";
 
 const TeamDashboard = () => {
   const navigate = useNavigate();
@@ -27,7 +28,7 @@ const TeamDashboard = () => {
 
     setUser(user);
 
-    // Get profile
+    // Get profile with wallet balance
     const { data: profile } = await supabase
       .from("profiles")
       .select("*")
@@ -35,6 +36,7 @@ const TeamDashboard = () => {
       .single();
 
     setProfile(profile);
+    setEarnings(profile?.wallet_balance || 0);
 
     // Get assigned tasks
     const { data: tasksData } = await supabase
@@ -44,21 +46,99 @@ const TeamDashboard = () => {
       .order("created_at", { ascending: false });
 
     setTasks(tasksData || []);
-
-    // Get earnings
-    const { data: earningsData } = await supabase
-      .from("team_earnings")
-      .select("amount_pkr")
-      .eq("team_member_id", user.id);
-
-    const totalEarnings = earningsData?.reduce((sum, e) => sum + Number(e.amount_pkr), 0) || 0;
-    setEarnings(totalEarnings);
   };
 
-  const markCompleted = async (taskId: string, bags: number) => {
+  const captureBeforePhoto = async (taskId: string) => {
     try {
-      // Update task status
+      const image = await CapCamera.getPhoto({
+        quality: 80,
+        allowEditing: false,
+        resultType: CameraResultType.Base64,
+        source: CameraSource.Camera,
+      });
+
+      if (!image.base64String) throw new Error("No photo captured");
+
+      const base64Data = image.base64String;
+      const fileName = `before_${taskId}_${Date.now()}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from("waste-photos")
+        .upload(fileName, decode(base64Data), { contentType: "image/jpeg" });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("waste-photos")
+        .getPublicUrl(fileName);
+
       const { error: updateError } = await supabase
+        .from("waste_requests")
+        .update({ before_photo_url: publicUrl })
+        .eq("id", taskId);
+
+      if (updateError) throw updateError;
+
+      toast.success("Before photo uploaded!");
+      checkUser();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to upload photo");
+    }
+  };
+
+  const captureAfterPhoto = async (taskId: string) => {
+    try {
+      const image = await CapCamera.getPhoto({
+        quality: 80,
+        allowEditing: false,
+        resultType: CameraResultType.Base64,
+        source: CameraSource.Camera,
+      });
+
+      if (!image.base64String) throw new Error("No photo captured");
+
+      const base64Data = image.base64String;
+      const fileName = `after_${taskId}_${Date.now()}.jpg`;
+      const { error: uploadError } = await supabase.storage
+        .from("waste-photos")
+        .upload(fileName, decode(base64Data), { contentType: "image/jpeg" });
+
+      if (uploadError) throw uploadError;
+
+      const { data: { publicUrl } } = supabase.storage
+        .from("waste-photos")
+        .getPublicUrl(fileName);
+
+      const { error: updateError } = await supabase
+        .from("waste_requests")
+        .update({ after_photo_url: publicUrl })
+        .eq("id", taskId);
+
+      if (updateError) throw updateError;
+
+      toast.success("After photo uploaded!");
+      checkUser();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to upload photo");
+    }
+  };
+
+  const decode = (base64: string) => {
+    const binaryString = window.atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
+  };
+
+  const markCompleted = async (taskId: string, task: any) => {
+    if (!task.before_photo_url || !task.after_photo_url) {
+      toast.error("Please upload both before and after photos first");
+      return;
+    }
+
+    try {
+      const { error } = await supabase
         .from("waste_requests")
         .update({
           status: "completed",
@@ -66,21 +146,9 @@ const TeamDashboard = () => {
         })
         .eq("id", taskId);
 
-      if (updateError) throw updateError;
+      if (error) throw error;
 
-      // Calculate earnings (500 PKR per task for team leader assumption)
-      const { error: earningsError } = await supabase
-        .from("team_earnings")
-        .insert({
-          team_member_id: user!.id,
-          waste_request_id: taskId,
-          amount_pkr: 500,
-          is_leader: true,
-        });
-
-      if (earningsError) throw earningsError;
-
-      toast.success("Task marked as completed!");
+      toast.success("Task marked as complete! Awaiting admin verification for 500 PKR payment.");
       checkUser();
     } catch (error: any) {
       toast.error(error.message || "Failed to update task");
@@ -134,11 +202,11 @@ const TeamDashboard = () => {
           </Card>
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
-              <CardTitle className="text-sm font-medium">Total Earnings</CardTitle>
+              <CardTitle className="text-sm font-medium">Wallet Balance</CardTitle>
               <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold">{earnings} PKR</div>
+              <div className="text-2xl font-bold text-green-600">{earnings} PKR</div>
             </CardContent>
           </Card>
         </div>
@@ -147,7 +215,7 @@ const TeamDashboard = () => {
         <Card>
           <CardHeader>
             <CardTitle>My Tasks</CardTitle>
-            <CardDescription>Manage your assigned waste collection tasks</CardDescription>
+            <CardDescription>Upload before/after photos and mark tasks complete (500 PKR per task)</CardDescription>
           </CardHeader>
           <CardContent>
             {tasks.length === 0 ? (
@@ -157,39 +225,71 @@ const TeamDashboard = () => {
                 {tasks.map((task) => (
                   <div
                     key={task.id}
-                    className="flex items-center justify-between p-4 border border-border rounded-lg bg-muted/30"
+                    className="flex flex-col p-4 border border-border rounded-lg bg-muted/30 gap-4"
                   >
                     <div className="flex-1">
-                      <div className="flex items-center gap-2 mb-1">
+                      <div className="flex items-center gap-2 mb-2">
                         <h3 className="font-semibold">{task.profiles.full_name}</h3>
                         <Badge
                           variant={
                             task.status === "completed"
                               ? "default"
-                              : task.status === "in_progress"
+                              : task.status === "assigned"
                               ? "secondary"
                               : "outline"
                           }
                         >
                           {task.status}
                         </Badge>
+                        {task.verification_status === "approved" && (
+                          <Badge className="bg-green-600">✓ Paid</Badge>
+                        )}
                       </div>
                       <p className="text-sm text-muted-foreground">
-                        {task.number_of_bags} bags • {task.cost_pkr} PKR
+                        {task.number_of_bags} bags • Payment: 500 PKR (Leader)
                       </p>
                       <p className="text-xs text-muted-foreground mt-1">
-                        Requested: {new Date(task.created_at).toLocaleDateString()}
+                        Assigned: {new Date(task.created_at).toLocaleDateString()}
                       </p>
                     </div>
+                    
                     {task.status !== "completed" && (
-                      <Button
-                        size="sm"
-                        onClick={() => markCompleted(task.id, task.number_of_bags)}
-                        className="bg-gradient-to-r from-primary to-secondary hover:opacity-90"
-                      >
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Mark Complete
-                      </Button>
+                      <div className="space-y-2">
+                        <div className="flex gap-2">
+                          <Button
+                            size="sm"
+                            variant={task.before_photo_url ? "default" : "outline"}
+                            onClick={() => captureBeforePhoto(task.id)}
+                            disabled={!!task.before_photo_url}
+                            className="flex-1"
+                          >
+                            <Camera className="h-4 w-4 mr-2" />
+                            {task.before_photo_url ? "✓ Before" : "Before Photo"}
+                          </Button>
+                          <Button
+                            size="sm"
+                            variant={task.after_photo_url ? "default" : "outline"}
+                            onClick={() => captureAfterPhoto(task.id)}
+                            disabled={!!task.after_photo_url}
+                            className="flex-1"
+                          >
+                            <Camera className="h-4 w-4 mr-2" />
+                            {task.after_photo_url ? "✓ After" : "After Photo"}
+                          </Button>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={() => markCompleted(task.id, task)}
+                          className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90"
+                        >
+                          <CheckCircle className="h-4 w-4 mr-2" />
+                          Mark Complete
+                        </Button>
+                      </div>
+                    )}
+
+                    {task.status === "completed" && task.verification_status === "pending" && (
+                      <Badge variant="secondary">Awaiting Admin Verification</Badge>
                     )}
                   </div>
                 ))}

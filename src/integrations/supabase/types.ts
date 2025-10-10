@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      donations: {
+        Row: {
+          allocated_to: string | null
+          amount_pkr: number
+          created_at: string | null
+          donation_type: string | null
+          donor_email: string | null
+          donor_name: string
+          id: string
+        }
+        Insert: {
+          allocated_to?: string | null
+          amount_pkr: number
+          created_at?: string | null
+          donation_type?: string | null
+          donor_email?: string | null
+          donor_name: string
+          id?: string
+        }
+        Update: {
+          allocated_to?: string | null
+          amount_pkr?: number
+          created_at?: string | null
+          donation_type?: string | null
+          donor_email?: string | null
+          donor_name?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      kiosks: {
+        Row: {
+          address: string
+          created_at: string | null
+          id: string
+          is_active: boolean | null
+          latitude: number
+          longitude: number
+          name: string
+        }
+        Insert: {
+          address: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          latitude: number
+          longitude: number
+          name: string
+        }
+        Update: {
+          address?: string
+          created_at?: string | null
+          id?: string
+          is_active?: boolean | null
+          latitude?: number
+          longitude?: number
+          name?: string
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           amount_pkr: number
@@ -63,6 +123,7 @@ export type Database = {
           id: string
           role: Database["public"]["Enums"]["user_role"]
           updated_at: string | null
+          wallet_balance: number
         }
         Insert: {
           created_at?: string | null
@@ -71,6 +132,7 @@ export type Database = {
           id: string
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
+          wallet_balance?: number
         }
         Update: {
           created_at?: string | null
@@ -79,6 +141,7 @@ export type Database = {
           id?: string
           role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
+          wallet_balance?: number
         }
         Relationships: []
       }
@@ -126,6 +189,7 @@ export type Database = {
           created_at: string | null
           id: string
           is_leader: boolean | null
+          payment_amount: number
           team_member_id: string
           waste_request_id: string
         }
@@ -134,6 +198,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_leader?: boolean | null
+          payment_amount?: number
           team_member_id: string
           waste_request_id: string
         }
@@ -142,6 +207,7 @@ export type Database = {
           created_at?: string | null
           id?: string
           is_leader?: boolean | null
+          payment_amount?: number
           team_member_id?: string
           waste_request_id?: string
         }
@@ -162,51 +228,117 @@ export type Database = {
           },
         ]
       }
+      user_roles: {
+        Row: {
+          created_at: string | null
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
+      wallet_transactions: {
+        Row: {
+          amount_pkr: number
+          created_at: string | null
+          description: string | null
+          id: string
+          related_id: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Insert: {
+          amount_pkr: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          related_id?: string | null
+          transaction_type: string
+          user_id: string
+        }
+        Update: {
+          amount_pkr?: number
+          created_at?: string | null
+          description?: string | null
+          id?: string
+          related_id?: string | null
+          transaction_type?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       waste_requests: {
         Row: {
           address: string | null
+          after_photo_url: string | null
           assigned_team_id: string | null
+          before_photo_url: string | null
           citizen_id: string
           completed_at: string | null
-          cost_pkr: number
           created_at: string | null
           id: string
           latitude: number | null
           longitude: number | null
           number_of_bags: number
           photo_url: string | null
+          reward_pkr: number
           status: Database["public"]["Enums"]["request_status"]
           updated_at: string | null
+          verification_status: string | null
+          verified_at: string | null
+          verified_by: string | null
         }
         Insert: {
           address?: string | null
+          after_photo_url?: string | null
           assigned_team_id?: string | null
+          before_photo_url?: string | null
           citizen_id: string
           completed_at?: string | null
-          cost_pkr: number
           created_at?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
           number_of_bags: number
           photo_url?: string | null
+          reward_pkr?: number
           status?: Database["public"]["Enums"]["request_status"]
           updated_at?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Update: {
           address?: string | null
+          after_photo_url?: string | null
           assigned_team_id?: string | null
+          before_photo_url?: string | null
           citizen_id?: string
           completed_at?: string | null
-          cost_pkr?: number
           created_at?: string | null
           id?: string
           latitude?: number | null
           longitude?: number | null
           number_of_bags?: number
           photo_url?: string | null
+          reward_pkr?: number
           status?: Database["public"]["Enums"]["request_status"]
           updated_at?: string | null
+          verification_status?: string | null
+          verified_at?: string | null
+          verified_by?: string | null
         }
         Relationships: [
           {
@@ -230,9 +362,16 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
+      app_role: "admin" | "team_leader" | "team_member" | "citizen"
       payment_status: "pending" | "completed" | "failed"
       request_status: "pending" | "assigned" | "in_progress" | "completed"
       user_role: "citizen" | "cleaning_team" | "admin"
@@ -363,6 +502,7 @@ export type CompositeTypes<
 export const Constants = {
   public: {
     Enums: {
+      app_role: ["admin", "team_leader", "team_member", "citizen"],
       payment_status: ["pending", "completed", "failed"],
       request_status: ["pending", "assigned", "in_progress", "completed"],
       user_role: ["citizen", "cleaning_team", "admin"],

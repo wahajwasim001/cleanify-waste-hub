@@ -14,7 +14,7 @@ const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<"citizen" | "cleaning_team" | "admin">("citizen");
+  const [role, setRole] = useState<"citizen" | "team_leader" | "team_member" | "admin">("citizen");
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -47,13 +47,27 @@ const Signup = () => {
 
       if (error) throw error;
 
+      // Insert role into user_roles table
+      if (data.user) {
+        const { error: roleError } = await supabase
+          .from("user_roles")
+          .insert({
+            user_id: data.user.id,
+            role: role as any,
+          });
+
+        if (roleError) {
+          console.error("Role assignment error:", roleError);
+        }
+      }
+
       toast.success("Account created! Redirecting...");
       
       // Redirect based on role
       setTimeout(() => {
         if (role === "admin") {
           navigate("/admin");
-        } else if (role === "cleaning_team") {
+        } else if (role === "team_leader" || role === "team_member") {
           navigate("/team");
         } else {
           navigate("/dashboard");
@@ -136,7 +150,8 @@ const Signup = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="citizen">Citizen</SelectItem>
-                  <SelectItem value="cleaning_team">Cleaning Team</SelectItem>
+                  <SelectItem value="team_leader">Team Leader</SelectItem>
+                  <SelectItem value="team_member">Team Member</SelectItem>
                   <SelectItem value="admin">Admin</SelectItem>
                 </SelectContent>
               </Select>

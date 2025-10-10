@@ -164,35 +164,47 @@ export type Database = {
       }
       waste_requests: {
         Row: {
+          address: string | null
           assigned_team_id: string | null
           citizen_id: string
           completed_at: string | null
           cost_pkr: number
           created_at: string | null
           id: string
+          latitude: number | null
+          longitude: number | null
           number_of_bags: number
+          photo_url: string | null
           status: Database["public"]["Enums"]["request_status"]
           updated_at: string | null
         }
         Insert: {
+          address?: string | null
           assigned_team_id?: string | null
           citizen_id: string
           completed_at?: string | null
           cost_pkr: number
           created_at?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           number_of_bags: number
+          photo_url?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           updated_at?: string | null
         }
         Update: {
+          address?: string | null
           assigned_team_id?: string | null
           citizen_id?: string
           completed_at?: string | null
           cost_pkr?: number
           created_at?: string | null
           id?: string
+          latitude?: number | null
+          longitude?: number | null
           number_of_bags?: number
+          photo_url?: string | null
           status?: Database["public"]["Enums"]["request_status"]
           updated_at?: string | null
         }

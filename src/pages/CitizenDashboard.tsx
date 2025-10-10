@@ -4,9 +4,11 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Leaf, Trash2, Recycle, LogOut, TrendingUp } from "lucide-react";
+import { Leaf, Trash2, Recycle, LogOut, TrendingUp, Camera, MapPin } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { Camera as CapCamera, CameraResultType, CameraSource } from "@capacitor/camera";
+import { Geolocation } from "@capacitor/geolocation";
 
 const CitizenDashboard = () => {
   const navigate = useNavigate();
@@ -16,6 +18,8 @@ const CitizenDashboard = () => {
   const [bottles, setBottles] = useState(0);
   const [cans, setCans] = useState(0);
   const [loading, setLoading] = useState(false);
+  const [photo, setPhoto] = useState<string | null>(null);
+  const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
   const [stats, setStats] = useState({
     totalRequests: 0,
     totalRecycled: 0,
@@ -65,30 +69,111 @@ const CitizenDashboard = () => {
     });
   };
 
+  const capturePhoto = async () => {
+    try {
+      const image = await CapCamera.getPhoto({
+        quality: 80,
+        allowEditing: false,
+        resultType: CameraResultType.Base64,
+        source: CameraSource.Camera,
+      });
+
+      if (image.base64String) {
+        setPhoto(`data:image/${image.format};base64,${image.base64String}`);
+        toast.success("Photo captured!");
+      }
+    } catch (error: any) {
+      toast.error("Failed to capture photo");
+    }
+  };
+
+  const getLocation = async () => {
+    try {
+      const position = await Geolocation.getCurrentPosition();
+      const { latitude, longitude } = position.coords;
+
+      // Reverse geocode to get address
+      const response = await fetch(
+        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
+      );
+      const data = await response.json();
+
+      setLocation({
+        lat: latitude,
+        lng: longitude,
+        address: data.display_name || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+      });
+      toast.success("Location captured!");
+    } catch (error: any) {
+      toast.error("Failed to get location");
+    }
+  };
+
   const handleRequestPickup = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!user) return;
+
+    if (!photo || !location) {
+      toast.error("Please add a photo and location before requesting pickup");
+      return;
+    }
 
     setLoading(true);
     const cost = bags * 20;
 
     try {
+      // Upload photo to storage
+      let photoUrl = null;
+      if (photo) {
+        const base64Data = photo.split(",")[1];
+        const fileName = `${user.id}/${Date.now()}.jpg`;
+        const { data: uploadData, error: uploadError } = await supabase.storage
+          .from("waste-photos")
+          .upload(fileName, decode(base64Data), {
+            contentType: "image/jpeg",
+          });
+
+        if (uploadError) throw uploadError;
+        
+        const { data: { publicUrl } } = supabase.storage
+          .from("waste-photos")
+          .getPublicUrl(fileName);
+        
+        photoUrl = publicUrl;
+      }
+
       const { error } = await supabase.from("waste_requests").insert({
         citizen_id: user.id,
         number_of_bags: bags,
         cost_pkr: cost,
+        latitude: location?.lat,
+        longitude: location?.lng,
+        address: location?.address,
+        photo_url: photoUrl,
       });
 
       if (error) throw error;
 
       toast.success(`Pickup requested! Cost: ${cost} PKR`);
       setBags(1);
+      setPhoto(null);
+      setLocation(null);
       checkUser();
     } catch (error: any) {
       toast.error(error.message || "Failed to request pickup");
     } finally {
       setLoading(false);
     }
+  };
+
+  // Helper function to decode base64
+  const decode = (base64: string) => {
+    const binaryString = window.atob(base64);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    return bytes;
   };
 
   const handleRecycle = async (e: React.FormEvent) => {
@@ -190,7 +275,7 @@ const CitizenDashboard = () => {
           <Card>
             <CardHeader>
               <CardTitle>Request Waste Pickup</CardTitle>
-              <CardDescription>20 PKR per bag</CardDescription>
+              <CardDescription>Add photo and location for pickup</CardDescription>
             </CardHeader>
             <CardContent>
               <form onSubmit={handleRequestPickup} className="space-y-4">
@@ -204,13 +289,52 @@ const CitizenDashboard = () => {
                     onChange={(e) => setBags(Number(e.target.value))}
                   />
                 </div>
+
+                {/* Photo Capture */}
+                <div className="space-y-2">
+                  <Label>Waste Photo</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={capturePhoto}
+                  >
+                    <Camera className="h-4 w-4 mr-2" />
+                    {photo ? "Retake Photo" : "Take Photo"}
+                  </Button>
+                  {photo && (
+                    <div className="mt-2 rounded-lg overflow-hidden border">
+                      <img src={photo} alt="Waste" className="w-full h-32 object-cover" />
+                    </div>
+                  )}
+                </div>
+
+                {/* Location */}
+                <div className="space-y-2">
+                  <Label>Pickup Location</Label>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="w-full"
+                    onClick={getLocation}
+                  >
+                    <MapPin className="h-4 w-4 mr-2" />
+                    {location ? "Update Location" : "Get Location"}
+                  </Button>
+                  {location && (
+                    <div className="text-xs text-muted-foreground p-2 bg-muted rounded">
+                      {location.address}
+                    </div>
+                  )}
+                </div>
+
                 <div className="text-sm text-muted-foreground">
                   Total Cost: <span className="font-bold text-foreground">{bags * 20} PKR</span>
                 </div>
                 <Button
                   type="submit"
                   className="w-full bg-gradient-to-r from-primary to-secondary hover:opacity-90"
-                  disabled={loading}
+                  disabled={loading || !photo || !location}
                 >
                   {loading ? "Requesting..." : "Request Pickup"}
                 </Button>

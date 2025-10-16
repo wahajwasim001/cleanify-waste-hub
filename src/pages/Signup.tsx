@@ -3,7 +3,6 @@ import { Link, useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Leaf } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -14,7 +13,6 @@ const Signup = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-  const [role, setRole] = useState<"citizen" | "team_leader" | "team_member" | "admin">("citizen");
   const [loading, setLoading] = useState(false);
 
   const handleSignup = async (e: React.FormEvent) => {
@@ -39,7 +37,7 @@ const Signup = () => {
         options: {
           data: {
             full_name: fullName,
-            role: role,
+            role: "citizen",
           },
           emailRedirectTo: `${window.location.origin}/`,
         },
@@ -47,13 +45,13 @@ const Signup = () => {
 
       if (error) throw error;
 
-      // Insert role into user_roles table
+      // Insert role into user_roles table (default to citizen)
       if (data.user) {
         const { error: roleError } = await supabase
           .from("user_roles")
           .insert({
             user_id: data.user.id,
-            role: role as any,
+            role: "citizen",
           });
 
         if (roleError) {
@@ -61,17 +59,11 @@ const Signup = () => {
         }
       }
 
-      toast.success("Account created! Redirecting...");
+      toast.success("Account created! Redirecting to dashboard...");
       
-      // Redirect based on role
+      // All new signups go to citizen dashboard
       setTimeout(() => {
-        if (role === "admin") {
-          navigate("/admin");
-        } else if (role === "team_leader" || role === "team_member") {
-          navigate("/team");
-        } else {
-          navigate("/dashboard");
-        }
+        navigate("/dashboard");
       }, 1000);
     } catch (error: any) {
       toast.error(error.message || "Failed to create account");
@@ -140,21 +132,6 @@ const Signup = () => {
                 onChange={(e) => setConfirmPassword(e.target.value)}
                 required
               />
-            </div>
-
-            <div className="space-y-2">
-              <Label htmlFor="role">Account Type</Label>
-              <Select value={role} onValueChange={(value: any) => setRole(value)}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="citizen">Citizen</SelectItem>
-                  <SelectItem value="team_leader">Team Leader</SelectItem>
-                  <SelectItem value="team_member">Team Member</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
             <Button

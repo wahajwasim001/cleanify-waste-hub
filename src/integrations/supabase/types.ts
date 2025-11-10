@@ -121,7 +121,6 @@ export type Database = {
           email: string
           full_name: string
           id: string
-          role: Database["public"]["Enums"]["user_role"]
           updated_at: string | null
           wallet_balance: number
         }
@@ -130,7 +129,6 @@ export type Database = {
           email: string
           full_name: string
           id: string
-          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
           wallet_balance?: number
         }
@@ -139,7 +137,6 @@ export type Database = {
           email?: string
           full_name?: string
           id?: string
-          role?: Database["public"]["Enums"]["user_role"]
           updated_at?: string | null
           wallet_balance?: number
         }

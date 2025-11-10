@@ -37,7 +37,6 @@ const Signup = () => {
         options: {
           data: {
             full_name: fullName,
-            role: "citizen",
           },
           emailRedirectTo: `${window.location.origin}/`,
         },

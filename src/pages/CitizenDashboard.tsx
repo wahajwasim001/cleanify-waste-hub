@@ -151,10 +151,10 @@ const CitizenDashboard = () => {
         photoUrl = publicUrl;
       }
 
+      // Reward is now calculated server-side via database trigger (20 PKR per bag)
       const { error } = await supabase.from("waste_requests").insert({
         citizen_id: user.id,
         number_of_bags: bags,
-        reward_pkr: 20, // Citizen will earn 20 PKR after verification
         latitude: location?.lat,
         longitude: location?.lng,
         address: location?.address,
@@ -194,21 +194,32 @@ const CitizenDashboard = () => {
       return;
     }
 
+    // Validate input ranges (matching database constraints)
+    if (bottles < 0 || bottles > 1000) {
+      toast.error("Bottles must be between 0 and 1000");
+      return;
+    }
+
+    if (cans < 0 || cans > 1000) {
+      toast.error("Cans must be between 0 and 1000");
+      return;
+    }
+
     setLoading(true);
-    const reward = (bottles + cans) * 5;
+    // Reward is now calculated server-side via database trigger (5 PKR per item)
 
     try {
       const { error } = await supabase.from("recycling_transactions").insert({
         citizen_id: user.id,
         bottles,
         cans,
-        total_items: bottles + cans,
-        reward_pkr: reward,
+        total_items: 0, // Will be calculated by trigger
+        reward_pkr: 0, // Will be calculated by trigger
       });
 
       if (error) throw error;
 
-      toast.success(`Recycling recorded! Reward: ${reward} PKR (automatically added to your wallet)`);
+      toast.success("Recycling recorded! Your reward has been automatically added to your wallet.");
       setBottles(0);
       setCans(0);
       checkUser();

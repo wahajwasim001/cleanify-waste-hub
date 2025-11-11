@@ -41,7 +41,7 @@ const AdminPanel = () => {
       .select("*")
       .eq("user_id", user.id)
       .eq("role", "admin")
-      .single();
+      .maybeSingle();
 
     if (!roleData) {
       toast.error("Access denied");
@@ -90,13 +90,29 @@ const AdminPanel = () => {
 
     setCompletedRequests(completedData || []);
 
-    // Get team leaders
-    const { data: teamsData } = await supabase
+    // Get team leaders - fetch user_ids then profiles (no FK embed dependency)
+    const { data: teamRoleRows, error: teamRoleError } = await supabase
       .from("user_roles")
-      .select("user_id, profiles(*)")
+      .select("user_id")
       .eq("role", "team_leader");
 
-    setTeams(teamsData?.map(t => t.profiles) || []);
+    if (teamRoleError) {
+      console.error("teamRoleError", teamRoleError);
+    }
+
+    const teamIds = (teamRoleRows ?? []).map((r: any) => r.user_id);
+    let teamProfiles: any[] = [];
+
+    if (teamIds.length > 0) {
+      const { data: profileRows } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("id", teamIds);
+
+      teamProfiles = profileRows ?? [];
+    }
+
+    setTeams(teamProfiles);
   };
 
   const assignTask = async (requestId: string, teamId: string) => {

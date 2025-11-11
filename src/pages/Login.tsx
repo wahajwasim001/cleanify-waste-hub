@@ -17,10 +17,18 @@ const Login = () => {
     e.preventDefault();
     setLoading(true);
 
+    const trimmedEmail = email.trim();
+    const trimmedPassword = password.trim();
+    if (!trimmedEmail || !trimmedPassword) {
+      toast.error("Please enter email and password");
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data, error } = await supabase.auth.signInWithPassword({
-        email,
-        password,
+        email: trimmedEmail,
+        password: trimmedPassword,
       });
 
       if (error) throw error;
@@ -30,7 +38,7 @@ const Login = () => {
         .from("user_roles")
         .select("role")
         .eq("user_id", data.user.id)
-        .single();
+        .maybeSingle();
 
       toast.success("Login successful!");
 
@@ -47,6 +55,22 @@ const Login = () => {
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleResetPassword = async () => {
+    const emailToReset = email.trim();
+    if (!emailToReset) {
+      toast.error("Enter your email above first");
+      return;
+    }
+    const { error } = await supabase.auth.resetPasswordForEmail(emailToReset, {
+      redirectTo: `${window.location.origin}/login`,
+    });
+    if (error) {
+      toast.error(error.message || "Failed to send reset email");
+      return;
+    }
+    toast.success("Password reset email sent. Check your inbox.");
   };
 
   return (
@@ -97,7 +121,7 @@ const Login = () => {
           </form>
 
           <div className="mt-6 space-y-4">
-            <Button variant="link" className="w-full text-sm">
+            <Button variant="link" className="w-full text-sm" type="button" onClick={handleResetPassword}>
               Forgot Password?
             </Button>
             <div className="text-center text-sm text-muted-foreground">

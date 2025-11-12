@@ -4,11 +4,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Leaf, Trash2, Recycle, LogOut, TrendingUp, Camera, MapPin, Wallet } from "lucide-react";
+import { Leaf, Trash2, Recycle, LogOut, TrendingUp, Camera, MapPin, Wallet, Map } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Camera as CapCamera, CameraResultType, CameraSource } from "@capacitor/camera";
 import { Geolocation } from "@capacitor/geolocation";
+import WasteMap from "@/components/WasteMap";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const CitizenDashboard = () => {
   const navigate = useNavigate();
@@ -26,6 +28,7 @@ const CitizenDashboard = () => {
     totalRecycled: 0,
     totalRewards: 0,
   });
+  const [wasteRequests, setWasteRequests] = useState<any[]>([]);
 
   useEffect(() => {
     checkUser();
@@ -55,6 +58,8 @@ const CitizenDashboard = () => {
       .from("waste_requests")
       .select("*")
       .eq("citizen_id", user.id);
+
+    setWasteRequests(requests || []);
 
     const { data: recycling } = await supabase
       .from("recycling_transactions")
@@ -423,6 +428,26 @@ const CitizenDashboard = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* My Requests Map */}
+        <Card className="mt-6">
+          <CardHeader>
+            <CardTitle>My Waste Pickup Requests</CardTitle>
+            <CardDescription>View all your pickup requests on the map</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <WasteMap 
+              locations={wasteRequests.map(req => ({
+                id: req.id,
+                latitude: req.latitude,
+                longitude: req.longitude,
+                address: req.address,
+                status: req.status,
+                number_of_bags: req.number_of_bags
+              }))} 
+            />
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

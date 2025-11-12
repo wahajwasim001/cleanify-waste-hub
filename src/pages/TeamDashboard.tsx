@@ -3,10 +3,12 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Leaf, LogOut, CheckCircle, Clock, DollarSign, Camera } from "lucide-react";
+import { Leaf, LogOut, CheckCircle, Clock, DollarSign, Camera, Map } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Camera as CapCamera, CameraResultType, CameraSource } from "@capacitor/camera";
+import WasteMap from "@/components/WasteMap";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 const TeamDashboard = () => {
   const navigate = useNavigate();
@@ -41,11 +43,27 @@ const TeamDashboard = () => {
     // Get assigned tasks
     const { data: tasksData } = await supabase
       .from("waste_requests")
-      .select("*, profiles!waste_requests_citizen_id_fkey(full_name)")
+      .select("*")
       .eq("assigned_team_id", user.id)
       .order("created_at", { ascending: false });
 
-    setTasks(tasksData || []);
+    // Fetch citizen profiles separately
+    const citizenIds = [...new Set(tasksData?.map(t => t.citizen_id) || [])];
+    const { data: citizenProfiles } = await supabase
+      .from("profiles")
+      .select("id, full_name")
+      .in("id", citizenIds);
+
+    const profileMap = Object.fromEntries(
+      (citizenProfiles || []).map(p => [p.id, p])
+    );
+
+    const enrichedTasks = (tasksData || []).map(task => ({
+      ...task,
+      profiles: profileMap[task.citizen_id] || { full_name: "Unknown" }
+    }));
+
+    setTasks(enrichedTasks);
   };
 
   const captureBeforePhoto = async (taskId: string) => {
@@ -211,13 +229,23 @@ const TeamDashboard = () => {
           </Card>
         </div>
 
-        {/* Task List */}
+        {/* Task List with Map */}
         <Card>
           <CardHeader>
             <CardTitle>My Tasks</CardTitle>
             <CardDescription>Upload before/after photos and mark tasks complete (500 PKR per task)</CardDescription>
           </CardHeader>
           <CardContent>
+            <Tabs defaultValue="list" className="w-full">
+              <TabsList className="grid w-full grid-cols-2 mb-4">
+                <TabsTrigger value="list">Task List</TabsTrigger>
+                <TabsTrigger value="map">
+                  <Map className="h-4 w-4 mr-2" />
+                  Map View
+                </TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="list">
             {tasks.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">No tasks assigned yet</p>
             ) : (
@@ -295,6 +323,21 @@ const TeamDashboard = () => {
                 ))}
               </div>
             )}
+              </TabsContent>
+
+              <TabsContent value="map">
+                <WasteMap 
+                  locations={tasks.map(task => ({
+                    id: task.id,
+                    latitude: task.latitude,
+                    longitude: task.longitude,
+                    address: task.address,
+                    status: task.status,
+                    number_of_bags: task.number_of_bags
+                  }))} 
+                />
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>

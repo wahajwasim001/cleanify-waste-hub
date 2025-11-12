@@ -63,6 +63,8 @@ const TeamDashboard = () => {
       profiles: profileMap[task.citizen_id] || { full_name: "Unknown" }
     }));
 
+    console.log("Team tasks:", enrichedTasks);
+    console.log("Current user ID:", user.id);
     setTasks(enrichedTasks);
   };
 

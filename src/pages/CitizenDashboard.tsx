@@ -59,6 +59,8 @@ const CitizenDashboard = () => {
       .select("*")
       .eq("citizen_id", user.id);
 
+    console.log("Citizen waste requests:", requests);
+    console.log("Current user ID:", user.id);
     setWasteRequests(requests || []);
 
     const { data: recycling } = await supabase

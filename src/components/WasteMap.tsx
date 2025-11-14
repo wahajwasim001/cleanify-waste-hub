@@ -1,12 +1,7 @@
-import React, { useMemo } from 'react';
+import React from 'react';
 import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
 import L from 'leaflet';
 import 'leaflet/dist/leaflet.css';
-
-// Workaround for TS prop typing variance across react-leaflet versions
-const AnyMapContainer = MapContainer as any;
-const AnyTileLayer = TileLayer as any;
-const AnyMarker = Marker as any;
 
 interface WasteMapProps {
   locations: Array<{
@@ -30,14 +25,13 @@ function createCircleIcon(color: string) {
   });
 }
 
-// Switched to OpenStreetMap + Leaflet (no API key required)
 const WasteMap: React.FC<WasteMapProps> = ({
   locations,
-  center = [67.0011, 24.8607], // Karachi, Pakistan (lng, lat)
+  center = [67.0011, 24.8607],
   zoom = 12,
 }) => {
   // Leaflet expects [lat, lng]
-  const mapCenter = useMemo(() => [center[1], center[0]] as [number, number], [center]);
+  const mapCenter: [number, number] = [center[1], center[0]];
 
   const getMarkerColor = (status?: string) => {
     if (status === 'completed') return '#22c55e';
@@ -46,13 +40,19 @@ const WasteMap: React.FC<WasteMapProps> = ({
   };
 
   return (
-    <div className="w-full">
-      <AnyMapContainer
+    <div className="w-full h-[400px]">
+      {/* @ts-ignore - react-leaflet type definitions issue */}
+      <MapContainer
         center={mapCenter}
         zoom={zoom}
-        style={{ width: '100%', height: '400px', borderRadius: '0.5rem' }}
+        scrollWheelZoom={true}
+        style={{ width: '100%', height: '100%', borderRadius: '0.5rem' }}
       >
-        <AnyTileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+        {/* @ts-ignore - react-leaflet type definitions issue */}
+        <TileLayer
+          attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+          url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+        />
 
         {locations.map((location) => {
           if (!location.latitude || !location.longitude) return null;
@@ -60,7 +60,8 @@ const WasteMap: React.FC<WasteMapProps> = ({
           const fill = getMarkerColor(location.status);
 
           return (
-            <AnyMarker key={location.id} position={pos} icon={createCircleIcon(fill)}>
+            // @ts-ignore - react-leaflet type definitions issue
+            <Marker key={location.id} position={pos} icon={createCircleIcon(fill)}>
               <Popup>
                 <div className="p-2">
                   <p className="font-bold mb-1">{location.address || 'Location'}</p>
@@ -68,10 +69,10 @@ const WasteMap: React.FC<WasteMapProps> = ({
                   {location.number_of_bags && <p className="text-sm">Bags: {location.number_of_bags}</p>}
                 </div>
               </Popup>
-            </AnyMarker>
+            </Marker>
           );
         })}
-      </AnyMapContainer>
+      </MapContainer>
     </div>
   );
 };

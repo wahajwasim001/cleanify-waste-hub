@@ -1,6 +1,12 @@
 import React, { useMemo } from 'react';
-import { GoogleMap, useJsApiLoader, Marker, InfoWindow } from '@react-google-maps/api';
-import { useState } from 'react';
+import { MapContainer, TileLayer, Marker, Popup } from 'react-leaflet';
+import L from 'leaflet';
+import 'leaflet/dist/leaflet.css';
+
+// Workaround for TS prop typing variance across react-leaflet versions
+const AnyMapContainer = MapContainer as any;
+const AnyTileLayer = TileLayer as any;
+const AnyMarker = Marker as any;
 
 interface WasteMapProps {
   locations: Array<{
@@ -15,33 +21,23 @@ interface WasteMapProps {
   zoom?: number;
 }
 
-// Read Google Maps API key from env (public VITE_ var)
-// Create VITE_GOOGLE_MAPS_API_KEY via the prompt below
-const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string) || '';
+function createCircleIcon(color: string) {
+  return L.divIcon({
+    className: 'custom-marker',
+    html: `<span style="display:block;width:24px;height:24px;border-radius:50%;background:${color};border:3px solid #ffffff;box-shadow:0 1px 3px rgba(0,0,0,0.2)"></span>`,
+    iconSize: [24, 24],
+    iconAnchor: [12, 12],
+  });
+}
 
-const WasteMapInner: React.FC<WasteMapProps & { apiKey: string }> = ({ 
-  locations, 
+// Switched to OpenStreetMap + Leaflet (no API key required)
+const WasteMap: React.FC<WasteMapProps> = ({
+  locations,
   center = [67.0011, 24.8607], // Karachi, Pakistan (lng, lat)
   zoom = 12,
-  apiKey
 }) => {
-  const [selectedMarker, setSelectedMarker] = useState<string | null>(null);
-
-  const { isLoaded, loadError } = useJsApiLoader({
-    id: 'google-map-script',
-    googleMapsApiKey: apiKey
-  });
-
-  const mapCenter = useMemo(() => ({
-    lat: center[1],
-    lng: center[0]
-  }), [center]);
-
-  const mapContainerStyle = {
-    width: '100%',
-    height: '400px',
-    borderRadius: '0.5rem'
-  };
+  // Leaflet expects [lat, lng]
+  const mapCenter = useMemo(() => [center[1], center[0]] as [number, number], [center]);
 
   const getMarkerColor = (status?: string) => {
     if (status === 'completed') return '#22c55e';
@@ -49,94 +45,36 @@ const WasteMapInner: React.FC<WasteMapProps & { apiKey: string }> = ({
     return '#3b82f6';
   };
 
-  if (loadError) {
-    return (
-      <div className="w-full h-[400px] rounded-lg shadow-lg bg-muted flex items-center justify-center">
-        <div className="text-center">
-          <p className="text-destructive-foreground">Error loading Google Maps.</p>
-          <p className="text-sm text-muted-foreground mt-1">{String((loadError as any)?.message || loadError)}</p>
-          <p className="text-xs text-muted-foreground mt-2">Tip: Ensure the key is valid, Maps JavaScript API is enabled, billing is active, and your domain is allowed in HTTP referrers.</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (!isLoaded) {
-    return (
-      <div className="w-full h-[400px] rounded-lg shadow-lg bg-muted flex items-center justify-center">
-        <p className="text-muted-foreground">Loading map...</p>
-      </div>
-    );
-  }
-
   return (
-    <GoogleMap
-      mapContainerStyle={mapContainerStyle}
-      center={mapCenter}
-      zoom={zoom}
-      options={{
-        zoomControl: true,
-        streetViewControl: false,
-        mapTypeControl: false,
-        fullscreenControl: true,
-      }}
-    >
-      {locations.map((location) => {
-        if (!location.latitude || !location.longitude) return null;
+    <div className="w-full">
+      <AnyMapContainer
+        style={{ width: '100%', height: '400px', borderRadius: '0.5rem' }}
+        whenCreated={(map: any) => {
+          map.setView(mapCenter, zoom);
+        }}
+      >
+        <AnyTileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-        return (
-          <React.Fragment key={location.id}>
-            <Marker
-              position={{
-                lat: location.latitude,
-                lng: location.longitude
-              }}
-              onClick={() => setSelectedMarker(location.id)}
-              icon={{
-                path: window.google.maps.SymbolPath.CIRCLE,
-                fillColor: getMarkerColor(location.status),
-                fillOpacity: 1,
-                strokeColor: '#ffffff',
-                strokeWeight: 3,
-                scale: 12,
-              }}
-            />
-            {selectedMarker === location.id && (
-              <InfoWindow
-                position={{
-                  lat: location.latitude,
-                  lng: location.longitude
-                }}
-                onCloseClick={() => setSelectedMarker(null)}
-              >
+        {locations.map((location) => {
+          if (!location.latitude || !location.longitude) return null;
+          const pos: [number, number] = [location.latitude, location.longitude];
+          const fill = getMarkerColor(location.status);
+
+          return (
+            <AnyMarker key={location.id} position={pos} icon={createCircleIcon(fill)}>
+              <Popup>
                 <div className="p-2">
                   <p className="font-bold mb-1">{location.address || 'Location'}</p>
-                  {location.status && (
-                    <p className="text-sm">Status: {location.status}</p>
-                  )}
-                  {location.number_of_bags && (
-                    <p className="text-sm">Bags: {location.number_of_bags}</p>
-                  )}
+                  {location.status && <p className="text-sm">Status: {location.status}</p>}
+                  {location.number_of_bags && <p className="text-sm">Bags: {location.number_of_bags}</p>}
                 </div>
-              </InfoWindow>
-            )}
-          </React.Fragment>
-        );
-      })}
-    </GoogleMap>
+              </Popup>
+            </AnyMarker>
+          );
+        })}
+      </AnyMapContainer>
+    </div>
   );
-};
-
-const WasteMap: React.FC<WasteMapProps> = (props) => {
-  const key = GOOGLE_MAPS_API_KEY;
-  if (!key) {
-    return (
-      <div className="w-full h-[400px] rounded-lg shadow-lg bg-muted flex items-center justify-center">
-        <p className="text-muted-foreground">Google Maps API key missing. Add VITE_GOOGLE_MAPS_API_KEY to enable the map.</p>
-      </div>
-    );
-  }
-  return <WasteMapInner {...props} apiKey={key} />;
 };
 
 export default WasteMap;

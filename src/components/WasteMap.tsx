@@ -48,10 +48,9 @@ const WasteMap: React.FC<WasteMapProps> = ({
   return (
     <div className="w-full">
       <AnyMapContainer
+        center={mapCenter}
+        zoom={zoom}
         style={{ width: '100%', height: '400px', borderRadius: '0.5rem' }}
-        whenCreated={(map: any) => {
-          map.setView(mapCenter, zoom);
-        }}
       >
         <AnyTileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 

@@ -19,16 +19,17 @@ interface WasteMapProps {
 // Create VITE_GOOGLE_MAPS_API_KEY via the prompt below
 const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string) || '';
 
-const WasteMap: React.FC<WasteMapProps> = ({ 
+const WasteMapInner: React.FC<WasteMapProps & { apiKey: string }> = ({ 
   locations, 
   center = [67.0011, 24.8607], // Karachi, Pakistan (lng, lat)
-  zoom = 12 
+  zoom = 12,
+  apiKey
 }) => {
   const [selectedMarker, setSelectedMarker] = useState<string | null>(null);
 
-  const { isLoaded } = useJsApiLoader({
+  const { isLoaded, loadError } = useJsApiLoader({
     id: 'google-map-script',
-    googleMapsApiKey: GOOGLE_MAPS_API_KEY
+    googleMapsApiKey: apiKey
   });
 
   const mapCenter = useMemo(() => ({
@@ -48,10 +49,14 @@ const WasteMap: React.FC<WasteMapProps> = ({
     return '#3b82f6';
   };
 
-  if (!GOOGLE_MAPS_API_KEY) {
+  if (loadError) {
     return (
       <div className="w-full h-[400px] rounded-lg shadow-lg bg-muted flex items-center justify-center">
-        <p className="text-muted-foreground">Google Maps API key missing. Add VITE_GOOGLE_MAPS_API_KEY to enable the map.</p>
+        <div className="text-center">
+          <p className="text-destructive-foreground">Error loading Google Maps.</p>
+          <p className="text-sm text-muted-foreground mt-1">{String((loadError as any)?.message || loadError)}</p>
+          <p className="text-xs text-muted-foreground mt-2">Tip: Ensure the key is valid, Maps JavaScript API is enabled, billing is active, and your domain is allowed in HTTP referrers.</p>
+        </div>
       </div>
     );
   }
@@ -120,6 +125,18 @@ const WasteMap: React.FC<WasteMapProps> = ({
       })}
     </GoogleMap>
   );
+};
+
+const WasteMap: React.FC<WasteMapProps> = (props) => {
+  const key = GOOGLE_MAPS_API_KEY;
+  if (!key) {
+    return (
+      <div className="w-full h-[400px] rounded-lg shadow-lg bg-muted flex items-center justify-center">
+        <p className="text-muted-foreground">Google Maps API key missing. Add VITE_GOOGLE_MAPS_API_KEY to enable the map.</p>
+      </div>
+    );
+  }
+  return <WasteMapInner {...props} apiKey={key} />;
 };
 
 export default WasteMap;

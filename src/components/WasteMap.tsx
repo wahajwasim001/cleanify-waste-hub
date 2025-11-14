@@ -15,9 +15,9 @@ interface WasteMapProps {
   zoom?: number;
 }
 
-// Add your Google Maps API key here
-// Get it from: https://console.cloud.google.com/google/maps-apis
-const GOOGLE_MAPS_API_KEY = 'YOUR_GOOGLE_MAPS_API_KEY';
+// Read Google Maps API key from env (public VITE_ var)
+// Create VITE_GOOGLE_MAPS_API_KEY via the prompt below
+const GOOGLE_MAPS_API_KEY = (import.meta.env.VITE_GOOGLE_MAPS_API_KEY as string) || '';
 
 const WasteMap: React.FC<WasteMapProps> = ({ 
   locations, 
@@ -47,6 +47,14 @@ const WasteMap: React.FC<WasteMapProps> = ({
     if (status === 'assigned') return '#f59e0b';
     return '#3b82f6';
   };
+
+  if (!GOOGLE_MAPS_API_KEY) {
+    return (
+      <div className="w-full h-[400px] rounded-lg shadow-lg bg-muted flex items-center justify-center">
+        <p className="text-muted-foreground">Google Maps API key missing. Add VITE_GOOGLE_MAPS_API_KEY to enable the map.</p>
+      </div>
+    );
+  }
 
   if (!isLoaded) {
     return (

@@ -45,8 +45,10 @@ const Login = () => {
       // Redirect based on role
       if (roleData?.role === "admin") {
         navigate("/admin");
-      } else if (roleData?.role === "team_leader" || roleData?.role === "team_member") {
-        navigate("/team");
+      } else if (roleData?.role === "team_leader") {
+        navigate("/team-leader");
+      } else if (roleData?.role === "team_member") {
+        navigate("/team-member");
       } else {
         navigate("/dashboard");
       }

@@ -1,8 +1,12 @@
+import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Recycle, Leaf, Users, Shield } from "lucide-react";
+import { DonationModal } from "@/components/DonationModal";
 
 const Landing = () => {
+  const [donationModalOpen, setDonationModalOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
       {/* Navbar */}
@@ -117,12 +121,18 @@ const Landing = () => {
               Your donations help us expand our services, support cleaning teams, and make 
               waste management accessible to more communities.
             </p>
-            <Button size="lg" className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-lg px-8 py-6">
+            <Button 
+              size="lg" 
+              className="bg-gradient-to-r from-primary to-secondary hover:opacity-90 text-lg px-8 py-6"
+              onClick={() => setDonationModalOpen(true)}
+            >
               Donate Now
             </Button>
           </div>
         </div>
       </section>
+
+      <DonationModal open={donationModalOpen} onOpenChange={setDonationModalOpen} />
 
       {/* Footer */}
       <footer className="bg-card border-t border-border py-8">

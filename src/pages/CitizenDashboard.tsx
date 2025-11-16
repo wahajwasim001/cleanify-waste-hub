@@ -216,12 +216,11 @@ const CitizenDashboard = () => {
     // Reward is now calculated server-side via database trigger (5 PKR per item)
 
     try {
+      // Don't set total_items or reward_pkr - let the database trigger calculate them
       const { error } = await supabase.from("recycling_transactions").insert({
         citizen_id: user.id,
         bottles,
         cans,
-        total_items: 0, // Will be calculated by trigger
-        reward_pkr: 0, // Will be calculated by trigger
       });
 
       if (error) throw error;

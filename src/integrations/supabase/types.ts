@@ -158,7 +158,7 @@ export type Database = {
           citizen_id: string
           created_at?: string | null
           id?: string
-          reward_pkr: number
+          reward_pkr?: number
           total_items?: number | null
         }
         Update: {

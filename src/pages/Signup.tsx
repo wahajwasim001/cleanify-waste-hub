@@ -67,8 +67,10 @@ const Signup = () => {
       setTimeout(() => {
         if (role === "admin") {
           navigate("/admin");
-        } else if (role === "team_leader" || role === "team_member") {
-          navigate("/team");
+        } else if (role === "team_leader") {
+          navigate("/team-leader");
+        } else if (role === "team_member") {
+          navigate("/team-member");
         } else {
           navigate("/dashboard");
         }

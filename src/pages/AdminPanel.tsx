@@ -4,7 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { Leaf, LogOut, Users, Trash2, Recycle, TrendingUp } from "lucide-react";
+import { Leaf, LogOut, Users, Trash2, Recycle, TrendingUp, BarChart3 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -180,6 +180,10 @@ const AdminPanel = () => {
               <span className="text-sm text-muted-foreground">
                 Admin Dashboard
               </span>
+              <Button variant="outline" size="sm" onClick={() => navigate("/admin/analytics")}>
+                <BarChart3 className="h-4 w-4 mr-2" />
+                Analytics
+              </Button>
               <Button variant="outline" size="sm" onClick={handleLogout}>
                 <LogOut className="h-4 w-4 mr-2" />
                 Logout

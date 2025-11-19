@@ -11,6 +11,7 @@ import TeamDashboard from "./pages/TeamDashboard";
 import TeamLeaderDashboard from "./pages/TeamLeaderDashboard";
 import TeamMemberDashboard from "./pages/TeamMemberDashboard";
 import AdminPanel from "./pages/AdminPanel";
+import AdminAnalytics from "./pages/AdminAnalytics";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -30,6 +31,7 @@ const App = () => (
           <Route path="/team-leader" element={<TeamLeaderDashboard />} />
           <Route path="/team-member" element={<TeamMemberDashboard />} />
           <Route path="/admin" element={<AdminPanel />} />
+          <Route path="/admin/analytics" element={<AdminAnalytics />} />
           {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
           <Route path="*" element={<NotFound />} />
         </Routes>

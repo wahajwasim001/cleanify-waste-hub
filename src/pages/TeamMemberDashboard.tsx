@@ -58,7 +58,7 @@ const TeamMemberDashboard = () => {
     const { data: tasksData } = await supabase
       .from("waste_requests")
       .select("*")
-      .eq("assigned_team_id", user.id)
+      .eq("assigned_member_id", user.id)
       .order("created_at", { ascending: false });
 
     // Fetch citizen profiles
@@ -297,6 +297,24 @@ const TeamMemberDashboard = () => {
                         <span className="ml-2 font-medium">{task.reward_pkr} PKR</span>
                       </div>
                     </div>
+
+                    {task.photo_url && (
+                      <div className="mb-4">
+                        <p className="text-sm font-semibold mb-2">Citizen Photo:</p>
+                        <img 
+                          src={task.photo_url} 
+                          alt="Waste location" 
+                          className="rounded-lg w-full max-h-48 object-cover"
+                        />
+                      </div>
+                    )}
+
+                    {task.latitude && task.longitude && (
+                      <div className="text-sm text-muted-foreground mb-4">
+                        <MapPin className="h-4 w-4 inline mr-1" />
+                        Coordinates: {task.latitude.toFixed(6)}, {task.longitude.toFixed(6)}
+                      </div>
+                    )}
 
                     <div className="space-y-2">
                       <div className="flex gap-2">

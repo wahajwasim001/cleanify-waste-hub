@@ -280,6 +280,7 @@ export type Database = {
         Row: {
           address: string | null
           after_photo_url: string | null
+          assigned_member_id: string | null
           assigned_team_id: string | null
           before_photo_url: string | null
           citizen_id: string
@@ -300,6 +301,7 @@ export type Database = {
         Insert: {
           address?: string | null
           after_photo_url?: string | null
+          assigned_member_id?: string | null
           assigned_team_id?: string | null
           before_photo_url?: string | null
           citizen_id: string
@@ -320,6 +322,7 @@ export type Database = {
         Update: {
           address?: string | null
           after_photo_url?: string | null
+          assigned_member_id?: string | null
           assigned_team_id?: string | null
           before_photo_url?: string | null
           citizen_id?: string
@@ -338,6 +341,13 @@ export type Database = {
           verified_by?: string | null
         }
         Relationships: [
+          {
+            foreignKeyName: "waste_requests_assigned_member_id_fkey"
+            columns: ["assigned_member_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "waste_requests_assigned_team_id_fkey"
             columns: ["assigned_team_id"]

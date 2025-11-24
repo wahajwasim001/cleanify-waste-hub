@@ -122,7 +122,7 @@ const TeamLeaderDashboard = () => {
     try {
       const { error } = await supabase
         .from("waste_requests")
-        .update({ assigned_team_id: memberId, status: "assigned" })
+        .update({ assigned_member_id: memberId, status: "in_progress" })
         .eq("id", taskId);
 
       if (error) throw error;
@@ -269,7 +269,25 @@ const TeamLeaderDashboard = () => {
                       </div>
                     </div>
 
-                    {task.status === "pending" && teamMembers.length > 0 && (
+                    {task.photo_url && (
+                      <div className="mb-4">
+                        <p className="text-sm font-semibold mb-2">Citizen Photo:</p>
+                        <img 
+                          src={task.photo_url} 
+                          alt="Waste location" 
+                          className="rounded-lg w-full max-h-48 object-cover"
+                        />
+                      </div>
+                    )}
+
+                    {task.latitude && task.longitude && (
+                      <div className="text-sm text-muted-foreground mb-4">
+                        <MapPin className="h-4 w-4 inline mr-1" />
+                        Coordinates: {task.latitude.toFixed(6)}, {task.longitude.toFixed(6)}
+                      </div>
+                    )}
+
+                    {task.status === "assigned" && teamMembers.length > 0 && (
                       <div className="flex gap-2 items-center">
                         <Select onValueChange={(memberId) => assignTaskToMember(task.id, memberId)}>
                           <SelectTrigger className="flex-1">

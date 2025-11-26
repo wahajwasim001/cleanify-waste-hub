@@ -33,21 +33,23 @@ const Login = () => {
 
       if (error) throw error;
 
-      // Get user role from user_roles table
-      const { data: roleData } = await supabase
+      // Get all user roles from user_roles table
+      const { data: rolesData } = await supabase
         .from("user_roles")
         .select("role")
-        .eq("user_id", data.user.id)
-        .maybeSingle();
+        .eq("user_id", data.user.id);
 
       toast.success("Login successful!");
 
-      // Redirect based on role
-      if (roleData?.role === "admin") {
+      // Redirect based on highest priority role
+      // Priority: admin > team_leader > team_member > citizen
+      const roles = rolesData?.map(r => r.role) || [];
+      
+      if (roles.includes("admin")) {
         navigate("/admin");
-      } else if (roleData?.role === "team_leader") {
+      } else if (roles.includes("team_leader")) {
         navigate("/team-leader");
-      } else if (roleData?.role === "team_member") {
+      } else if (roles.includes("team_member")) {
         navigate("/team-member");
       } else {
         navigate("/dashboard");

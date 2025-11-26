@@ -119,28 +119,6 @@ const TeamLeaderDashboard = () => {
     }
     setTeamMembers(myTeamMembers);
 
-    // Get all available team members (not yet in my team) for the add dialog
-    const { data: allMemberRoles } = await supabase
-      .from("user_roles")
-      .select("user_id")
-      .eq("role", "team_member");
-
-    if (allMemberRoles && allMemberRoles.length > 0) {
-      const allMemberIds = allMemberRoles.map(r => r.user_id);
-      const myTeamMemberIds = myTeamMembers.map(m => m.id);
-      const availableIds = allMemberIds.filter(id => !myTeamMemberIds.includes(id));
-
-      if (availableIds.length > 0) {
-        const { data: available } = await supabase
-          .from("profiles")
-          .select("*")
-          .in("id", availableIds);
-        setAvailableMembers(available || []);
-      } else {
-        setAvailableMembers([]);
-      }
-    }
-
     // Calculate stats
     const activeTasks = tasksData?.filter(t => t.status !== "completed").length || 0;
     const completedTasks = tasksData?.filter(t => t.status === "completed").length || 0;
@@ -185,6 +163,41 @@ const TeamLeaderDashboard = () => {
       checkUser();
     } catch (error: any) {
       toast.error(error.message || "Failed to approve task");
+    }
+  };
+
+  const loadAvailableMembers = async () => {
+    if (!user) return;
+
+    // Get all team members with the role
+    const { data: allMemberRoles } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "team_member");
+
+    if (!allMemberRoles || allMemberRoles.length === 0) {
+      setAvailableMembers([]);
+      return;
+    }
+
+    // Get current team memberships
+    const { data: myTeamData } = await supabase
+      .from("team_memberships")
+      .select("team_member_id")
+      .eq("team_leader_id", user.id);
+
+    const myTeamMemberIds = myTeamData?.map(t => t.team_member_id) || [];
+    const allMemberIds = allMemberRoles.map(r => r.user_id);
+    const availableIds = allMemberIds.filter(id => !myTeamMemberIds.includes(id));
+
+    if (availableIds.length > 0) {
+      const { data: available } = await supabase
+        .from("profiles")
+        .select("*")
+        .in("id", availableIds);
+      setAvailableMembers(available || []);
+    } else {
+      setAvailableMembers([]);
     }
   };
 
@@ -405,7 +418,10 @@ const TeamLeaderDashboard = () => {
                   <CardTitle>My Team Members</CardTitle>
                   <CardDescription>Manage your waste collection team</CardDescription>
                 </div>
-                <Dialog open={addMemberOpen} onOpenChange={setAddMemberOpen}>
+                <Dialog open={addMemberOpen} onOpenChange={(open) => {
+                  setAddMemberOpen(open);
+                  if (open) loadAvailableMembers();
+                }}>
                   <DialogTrigger asChild>
                     <Button size="sm">
                       <UserPlus className="h-4 w-4 mr-2" />

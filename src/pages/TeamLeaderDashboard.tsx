@@ -199,16 +199,19 @@ const TeamLeaderDashboard = () => {
 
     const myTeamMemberIds = myTeamData?.map(t => t.team_member_id) || [];
     const allMemberIds = allMemberRoles.map(r => r.user_id);
+    console.log("All member IDs:", allMemberIds);
+    console.log("My team member IDs:", myTeamMemberIds);
+    
     const availableIds = allMemberIds.filter(id => !myTeamMemberIds.includes(id));
 
-    console.log("Available IDs:", availableIds);
+    console.log("Available IDs after filtering:", availableIds);
 
     if (availableIds.length > 0) {
-      const { data: available } = await supabase
+      const { data: available, error: profileError } = await supabase
         .from("profiles")
         .select("*")
         .in("id", availableIds);
-      console.log("Available members:", available);
+      console.log("Available members from profiles:", available, "Error:", profileError);
       setAvailableMembers(available || []);
     } else {
       console.log("No available members after filtering");

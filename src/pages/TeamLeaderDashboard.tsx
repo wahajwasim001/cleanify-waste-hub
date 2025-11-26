@@ -173,13 +173,15 @@ const TeamLeaderDashboard = () => {
       return;
     }
 
-    // Get all team members with the role
-    const { data: allMemberRoles, error: rolesError } = await supabase
+    // Get all roles and filter team members in code (avoid enum issues)
+    const { data: allRoles, error: rolesError } = await supabase
       .from("user_roles")
-      .select("user_id")
-      .eq("role", "team_member");
+      .select("user_id, role");
 
-    console.log("All member roles:", allMemberRoles, "Error:", rolesError);
+    console.log("All roles:", allRoles, "Error:", rolesError);
+
+    const allMemberRoles = (allRoles || []).filter((r: any) => r.role === "team_member");
+    console.log("Filtered team_member roles:", allMemberRoles);
 
     if (!allMemberRoles || allMemberRoles.length === 0) {
       console.log("No team members found");

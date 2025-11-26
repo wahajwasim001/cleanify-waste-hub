@@ -15,6 +15,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
+import { UserPlus } from "lucide-react";
 
 const TeamLeaderDashboard = () => {
   const navigate = useNavigate();
@@ -22,7 +31,9 @@ const TeamLeaderDashboard = () => {
   const [profile, setProfile] = useState<any>(null);
   const [allTasks, setAllTasks] = useState<any[]>([]);
   const [teamMembers, setTeamMembers] = useState<any[]>([]);
+  const [availableMembers, setAvailableMembers] = useState<any[]>([]);
   const [earnings, setEarnings] = useState(0);
+  const [addMemberOpen, setAddMemberOpen] = useState(false);
   const [stats, setStats] = useState({
     activeTasks: 0,
     completedTasks: 0,
@@ -91,20 +102,43 @@ const TeamLeaderDashboard = () => {
 
     setAllTasks(enrichedTasks);
 
-    // Get team members
-    const { data: memberRoles } = await supabase
-      .from("user_roles")
-      .select("user_id")
-      .eq("role", "team_member");
+    // Get MY team members from team_memberships table
+    const { data: myTeamData } = await supabase
+      .from("team_memberships")
+      .select("team_member_id")
+      .eq("team_leader_id", user.id);
 
-    if (memberRoles && memberRoles.length > 0) {
-      const memberIds = memberRoles.map(r => r.user_id);
+    let myTeamMembers: any[] = [];
+    if (myTeamData && myTeamData.length > 0) {
+      const memberIds = myTeamData.map(t => t.team_member_id);
       const { data: members } = await supabase
         .from("profiles")
         .select("*")
         .in("id", memberIds);
+      myTeamMembers = members || [];
+    }
+    setTeamMembers(myTeamMembers);
 
-      setTeamMembers(members || []);
+    // Get all available team members (not yet in my team) for the add dialog
+    const { data: allMemberRoles } = await supabase
+      .from("user_roles")
+      .select("user_id")
+      .eq("role", "team_member");
+
+    if (allMemberRoles && allMemberRoles.length > 0) {
+      const allMemberIds = allMemberRoles.map(r => r.user_id);
+      const myTeamMemberIds = myTeamMembers.map(m => m.id);
+      const availableIds = allMemberIds.filter(id => !myTeamMemberIds.includes(id));
+
+      if (availableIds.length > 0) {
+        const { data: available } = await supabase
+          .from("profiles")
+          .select("*")
+          .in("id", availableIds);
+        setAvailableMembers(available || []);
+      } else {
+        setAvailableMembers([]);
+      }
     }
 
     // Calculate stats
@@ -114,7 +148,7 @@ const TeamLeaderDashboard = () => {
     setStats({
       activeTasks,
       completedTasks,
-      teamSize: teamMembers.length,
+      teamSize: myTeamMembers.length,
     });
   };
 
@@ -151,6 +185,42 @@ const TeamLeaderDashboard = () => {
       checkUser();
     } catch (error: any) {
       toast.error(error.message || "Failed to approve task");
+    }
+  };
+
+  const addTeamMember = async (memberId: string) => {
+    try {
+      const { error } = await supabase
+        .from("team_memberships")
+        .insert({
+          team_leader_id: user.id,
+          team_member_id: memberId,
+        });
+
+      if (error) throw error;
+
+      toast.success("Team member added successfully!");
+      setAddMemberOpen(false);
+      checkUser();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to add team member");
+    }
+  };
+
+  const removeTeamMember = async (memberId: string) => {
+    try {
+      const { error } = await supabase
+        .from("team_memberships")
+        .delete()
+        .eq("team_leader_id", user.id)
+        .eq("team_member_id", memberId);
+
+      if (error) throw error;
+
+      toast.success("Team member removed");
+      checkUser();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to remove team member");
     }
   };
 
@@ -329,25 +399,79 @@ const TeamLeaderDashboard = () => {
           </TabsContent>
 
           <TabsContent value="team" className="space-y-4">
-            {teamMembers.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center text-muted-foreground">
-                  No team members yet
-                </CardContent>
-              </Card>
-            ) : (
-              teamMembers.map((member) => (
-                <Card key={member.id}>
-                  <CardContent className="p-6 flex items-center justify-between">
-                    <div>
-                      <h3 className="font-semibold">{member.full_name}</h3>
-                      <p className="text-sm text-muted-foreground">{member.email}</p>
+            <Card>
+              <CardHeader className="flex flex-row items-center justify-between">
+                <div>
+                  <CardTitle>My Team Members</CardTitle>
+                  <CardDescription>Manage your waste collection team</CardDescription>
+                </div>
+                <Dialog open={addMemberOpen} onOpenChange={setAddMemberOpen}>
+                  <DialogTrigger asChild>
+                    <Button size="sm">
+                      <UserPlus className="h-4 w-4 mr-2" />
+                      Add Member
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent>
+                    <DialogHeader>
+                      <DialogTitle>Add Team Member</DialogTitle>
+                      <DialogDescription>
+                        Select a team member to add to your team
+                      </DialogDescription>
+                    </DialogHeader>
+                    <div className="space-y-2 mt-4">
+                      {availableMembers.length === 0 ? (
+                        <p className="text-sm text-muted-foreground text-center py-4">
+                          No available team members to add
+                        </p>
+                      ) : (
+                        availableMembers.map((member) => (
+                          <Card key={member.id} className="cursor-pointer hover:bg-muted/50" onClick={() => addTeamMember(member.id)}>
+                            <CardContent className="p-4 flex items-center justify-between">
+                              <div>
+                                <h4 className="font-semibold text-sm">{member.full_name}</h4>
+                                <p className="text-xs text-muted-foreground">{member.email}</p>
+                              </div>
+                              <Button size="sm" variant="ghost">Add</Button>
+                            </CardContent>
+                          </Card>
+                        ))
+                      )}
                     </div>
-                    <Badge variant="outline">Team Member</Badge>
-                  </CardContent>
-                </Card>
-              ))
-            )}
+                  </DialogContent>
+                </Dialog>
+              </CardHeader>
+              <CardContent>
+                {teamMembers.length === 0 ? (
+                  <div className="py-8 text-center text-muted-foreground">
+                    No team members yet. Click "Add Member" to build your team.
+                  </div>
+                ) : (
+                  <div className="space-y-2">
+                    {teamMembers.map((member) => (
+                      <Card key={member.id}>
+                        <CardContent className="p-4 flex items-center justify-between">
+                          <div>
+                            <h3 className="font-semibold">{member.full_name}</h3>
+                            <p className="text-sm text-muted-foreground">{member.email}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <Badge variant="outline">Team Member</Badge>
+                            <Button 
+                              size="sm" 
+                              variant="destructive" 
+                              onClick={() => removeTeamMember(member.id)}
+                            >
+                              Remove
+                            </Button>
+                          </div>
+                        </CardContent>
+                      </Card>
+                    ))}
+                  </div>
+                )}
+              </CardContent>
+            </Card>
           </TabsContent>
         </Tabs>
       </div>

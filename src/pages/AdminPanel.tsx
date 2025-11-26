@@ -36,15 +36,15 @@ const AdminPanel = () => {
     setUser(user);
 
     // Check admin role from user_roles table
-    const { data: roleData } = await supabase
+    const { data: rolesData } = await supabase
       .from("user_roles")
-      .select("*")
-      .eq("user_id", user.id)
-      .eq("role", "admin")
-      .maybeSingle();
+      .select("role")
+      .eq("user_id", user.id);
 
-    if (!roleData) {
-      toast.error("Access denied");
+    const roles = rolesData?.map(r => r.role) || [];
+    
+    if (!roles.includes("admin")) {
+      toast.error("Access denied - Admin role required");
       navigate("/dashboard");
       return;
     }

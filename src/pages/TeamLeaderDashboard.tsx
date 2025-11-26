@@ -167,15 +167,22 @@ const TeamLeaderDashboard = () => {
   };
 
   const loadAvailableMembers = async () => {
-    if (!user) return;
+    console.log("loadAvailableMembers called, user:", user?.id);
+    if (!user) {
+      console.log("No user, returning");
+      return;
+    }
 
     // Get all team members with the role
-    const { data: allMemberRoles } = await supabase
+    const { data: allMemberRoles, error: rolesError } = await supabase
       .from("user_roles")
       .select("user_id")
       .eq("role", "team_member");
 
+    console.log("All member roles:", allMemberRoles, "Error:", rolesError);
+
     if (!allMemberRoles || allMemberRoles.length === 0) {
+      console.log("No team members found");
       setAvailableMembers([]);
       return;
     }
@@ -186,17 +193,23 @@ const TeamLeaderDashboard = () => {
       .select("team_member_id")
       .eq("team_leader_id", user.id);
 
+    console.log("My team data:", myTeamData);
+
     const myTeamMemberIds = myTeamData?.map(t => t.team_member_id) || [];
     const allMemberIds = allMemberRoles.map(r => r.user_id);
     const availableIds = allMemberIds.filter(id => !myTeamMemberIds.includes(id));
+
+    console.log("Available IDs:", availableIds);
 
     if (availableIds.length > 0) {
       const { data: available } = await supabase
         .from("profiles")
         .select("*")
         .in("id", availableIds);
+      console.log("Available members:", available);
       setAvailableMembers(available || []);
     } else {
+      console.log("No available members after filtering");
       setAvailableMembers([]);
     }
   };

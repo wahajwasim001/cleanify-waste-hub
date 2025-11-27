@@ -146,6 +146,25 @@ const TeamLeaderDashboard = () => {
     }
   };
 
+  const completeTask = async (taskId: string) => {
+    try {
+      const { error } = await supabase
+        .from("waste_requests")
+        .update({
+          status: "completed",
+          completed_at: new Date().toISOString(),
+        })
+        .eq("id", taskId);
+
+      if (error) throw error;
+
+      toast.success("Task marked as completed!");
+      checkUser();
+    } catch (error: any) {
+      toast.error(error.message || "Failed to complete task");
+    }
+  };
+
   const approveTask = async (taskId: string) => {
     try {
       const { error } = await supabase
@@ -404,8 +423,15 @@ const TeamLeaderDashboard = () => {
                       </div>
                     )}
 
+                    {(task.status === "in_progress" || task.status === "assigned") && (
+                      <Button onClick={() => completeTask(task.id)} className="w-full">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Mark as Completed
+                      </Button>
+                    )}
+
                     {task.status === "completed" && task.verification_status === "pending" && (
-                      <Button onClick={() => approveTask(task.id)} className="w-full">
+                      <Button onClick={() => approveTask(task.id)} className="w-full" variant="secondary">
                         <CheckCircle className="h-4 w-4 mr-2" />
                         Approve Task
                       </Button>

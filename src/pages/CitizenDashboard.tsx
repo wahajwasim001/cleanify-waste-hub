@@ -4,6 +4,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Badge } from "@/components/ui/badge";
 import { Leaf, Trash2, Recycle, LogOut, TrendingUp, Camera, MapPin, Wallet, Map } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -430,23 +431,73 @@ const CitizenDashboard = () => {
           </Card>
         </div>
 
-        {/* My Requests Map */}
+        {/* My Requests */}
         <Card className="mt-6">
           <CardHeader>
             <CardTitle>My Waste Pickup Requests</CardTitle>
-            <CardDescription>View all your pickup requests on the map</CardDescription>
+            <CardDescription>Track the status of your pickup requests</CardDescription>
           </CardHeader>
           <CardContent>
-            <WasteMap 
-              locations={wasteRequests.map(req => ({
-                id: req.id,
-                latitude: req.latitude,
-                longitude: req.longitude,
-                address: req.address,
-                status: req.status,
-                number_of_bags: req.number_of_bags
-              }))} 
-            />
+            <Tabs defaultValue="list">
+              <TabsList>
+                <TabsTrigger value="list">List View</TabsTrigger>
+                <TabsTrigger value="map">Map View</TabsTrigger>
+              </TabsList>
+              
+              <TabsContent value="list" className="space-y-3 mt-4">
+                {wasteRequests.length === 0 ? (
+                  <div className="text-center py-8 text-muted-foreground">
+                    No pickup requests yet
+                  </div>
+                ) : (
+                  wasteRequests.map((req) => (
+                    <Card key={req.id}>
+                      <CardContent className="p-4">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="flex-1">
+                            <div className="flex items-center gap-2 mb-1">
+                              <MapPin className="h-4 w-4 text-muted-foreground" />
+                              <p className="text-sm font-medium">{req.address}</p>
+                            </div>
+                            <div className="text-xs text-muted-foreground">
+                              {req.number_of_bags} bag(s) • {req.reward_pkr} PKR
+                            </div>
+                          </div>
+                          <div className="flex flex-col items-end gap-1">
+                            <Badge variant={req.status === "completed" ? "default" : "secondary"}>
+                              {req.status}
+                            </Badge>
+                            {req.verification_status && req.status === "completed" && (
+                              <Badge variant={req.verification_status === "approved" ? "default" : "outline"} className="text-xs">
+                                {req.verification_status}
+                              </Badge>
+                            )}
+                          </div>
+                        </div>
+                        {req.completed_at && (
+                          <div className="text-xs text-muted-foreground mt-2">
+                            Completed: {new Date(req.completed_at).toLocaleDateString()}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  ))
+                )}
+              </TabsContent>
+              
+              <TabsContent value="map" className="mt-4">
+                <WasteMap 
+                  locations={wasteRequests.map(req => ({
+                    id: req.id,
+                    latitude: req.latitude,
+                    longitude: req.longitude,
+                    address: req.address,
+                    status: req.status,
+                    number_of_bags: req.number_of_bags
+                  }))} 
+                />
+              </TabsContent>
+            </Tabs>
           </CardContent>
         </Card>
       </div>

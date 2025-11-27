@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { toast } from "sonner";
 import { CreditCard } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface DonationModalProps {
   open: boolean;
@@ -54,7 +55,18 @@ export const DonationModal = ({ open, onOpenChange }: DonationModalProps) => {
 
     try {
       // Simulate payment processing
-      await new Promise(resolve => setTimeout(resolve, 2000));
+      await new Promise(resolve => setTimeout(resolve, 1500));
+      
+      // Save donation to database
+      const { error: donationError } = await supabase
+        .from("donations")
+        .insert({
+          amount_pkr: parseFloat(formData.amount),
+          donor_name: formData.cardName,
+          donation_type: "general",
+        });
+
+      if (donationError) throw donationError;
       
       toast.success(`Thank you for your donation of PKR ${formData.amount}! Your contribution helps us create cleaner communities.`);
       
@@ -68,8 +80,9 @@ export const DonationModal = ({ open, onOpenChange }: DonationModalProps) => {
       });
       
       onOpenChange(false);
-    } catch (error) {
-      toast.error("Payment failed. Please try again.");
+    } catch (error: any) {
+      console.error("Donation error:", error);
+      toast.error(error.message || "Payment failed. Please try again.");
     } finally {
       setLoading(false);
     }

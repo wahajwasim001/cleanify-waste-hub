@@ -3,9 +3,19 @@ import { Link } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Recycle, Leaf, Users, Shield } from "lucide-react";
 import { DonationModal } from "@/components/DonationModal";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const Landing = () => {
   const [donationModalOpen, setDonationModalOpen] = useState(false);
+  const [contactOpen, setContactOpen] = useState(false);
+  const [privacyOpen, setPrivacyOpen] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
 
   return (
     <div className="min-h-screen bg-background">
@@ -134,6 +144,124 @@ const Landing = () => {
 
       <DonationModal open={donationModalOpen} onOpenChange={setDonationModalOpen} />
 
+      {/* Contact Dialog */}
+      <Dialog open={contactOpen} onOpenChange={setContactOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Contact Us</DialogTitle>
+            <DialogDescription>
+              Get in touch with the Cleanify team
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <h4 className="font-semibold mb-2">Phone</h4>
+              <a href="tel:03362133383" className="text-primary hover:underline text-lg">
+                03362133383
+              </a>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">Address</h4>
+              <p className="text-muted-foreground">
+                Cleanify NPO<br />
+                Making cities cleaner, one pickup at a time
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Privacy Policy Dialog */}
+      <Dialog open={privacyOpen} onOpenChange={setPrivacyOpen}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Privacy Policy</DialogTitle>
+            <DialogDescription>
+              Last updated: {new Date().toLocaleDateString()}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4 text-sm">
+            <div>
+              <h4 className="font-semibold mb-2">Information We Collect</h4>
+              <p className="text-muted-foreground">
+                We collect information you provide directly to us, including your name, email address, 
+                phone number, and location data when you request waste pickup services.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">How We Use Your Information</h4>
+              <p className="text-muted-foreground">
+                We use the information we collect to provide, maintain, and improve our services, 
+                to process your waste pickup requests, and to communicate with you about our services.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">Data Security</h4>
+              <p className="text-muted-foreground">
+                We take reasonable measures to help protect your personal information from loss, 
+                theft, misuse, unauthorized access, disclosure, alteration, and destruction.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">Your Rights</h4>
+              <p className="text-muted-foreground">
+                You have the right to access, update, or delete your personal information at any time. 
+                Contact us if you wish to exercise these rights.
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Terms of Service Dialog */}
+      <Dialog open={termsOpen} onOpenChange={setTermsOpen}>
+        <DialogContent className="max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Terms of Service</DialogTitle>
+            <DialogDescription>
+              Last updated: {new Date().toLocaleDateString()}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4 text-sm">
+            <div>
+              <h4 className="font-semibold mb-2">Acceptance of Terms</h4>
+              <p className="text-muted-foreground">
+                By accessing and using Cleanify's services, you accept and agree to be bound by the 
+                terms and provision of this agreement.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">Service Description</h4>
+              <p className="text-muted-foreground">
+                Cleanify provides a platform connecting citizens with waste collection teams. We facilitate 
+                waste pickup requests, recycling services, and reward distribution.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">User Responsibilities</h4>
+              <p className="text-muted-foreground">
+                Users are responsible for providing accurate information, ensuring waste is properly 
+                prepared for pickup, and complying with local waste management regulations.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">Payment and Rewards</h4>
+              <p className="text-muted-foreground">
+                Rewards are calculated based on the quantity and type of waste collected. Payment 
+                processing follows our standard procedures and timelines.
+              </p>
+            </div>
+            <div>
+              <h4 className="font-semibold mb-2">Limitation of Liability</h4>
+              <p className="text-muted-foreground">
+                Cleanify is not liable for any damages arising from the use of our services, except 
+                as required by law.
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
+
       {/* Footer */}
       <footer className="bg-card border-t border-border py-8">
         <div className="container mx-auto px-4">
@@ -146,15 +274,24 @@ const Landing = () => {
               © 2025 Cleanify NPO. All rights reserved.
             </p>
             <div className="flex gap-4">
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              <button 
+                onClick={() => setContactOpen(true)}
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
                 Contact
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              </button>
+              <button 
+                onClick={() => setPrivacyOpen(true)}
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
                 Privacy
-              </a>
-              <a href="#" className="text-muted-foreground hover:text-primary transition-colors">
+              </button>
+              <button 
+                onClick={() => setTermsOpen(true)}
+                className="text-muted-foreground hover:text-primary transition-colors"
+              >
                 Terms
-              </a>
+              </button>
             </div>
           </div>
         </div>

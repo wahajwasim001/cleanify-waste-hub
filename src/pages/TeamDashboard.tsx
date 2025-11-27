@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Leaf, LogOut, CheckCircle, Clock, DollarSign, Camera, Map } from "lucide-react";
+import { Leaf, LogOut, CheckCircle, Clock, Camera, Map } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { Camera as CapCamera, CameraResultType, CameraSource } from "@capacitor/camera";
@@ -223,7 +223,6 @@ const TeamDashboard = () => {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between pb-2">
               <CardTitle className="text-sm font-medium">Wallet Balance</CardTitle>
-              <DollarSign className="h-4 w-4 text-muted-foreground" />
             </CardHeader>
             <CardContent>
               <div className="text-2xl font-bold text-green-600">{earnings} PKR</div>

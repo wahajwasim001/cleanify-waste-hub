@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Leaf, LogOut, MapPin, Users, CheckCircle, Clock, DollarSign } from "lucide-react";
+import { Leaf, LogOut, MapPin, Users, CheckCircle, Clock } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import WasteMap from "@/components/WasteMap";
@@ -320,8 +320,7 @@ const TeamLeaderDashboard = () => {
           <Card>
             <CardHeader className="pb-3">
               <CardDescription>Wallet Balance</CardDescription>
-              <CardTitle className="text-3xl flex items-center gap-1">
-                <DollarSign className="h-6 w-6" />
+              <CardTitle className="text-3xl">
                 {earnings} PKR
               </CardTitle>
             </CardHeader>

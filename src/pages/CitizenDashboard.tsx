@@ -107,23 +107,56 @@ const CitizenDashboard = () => {
 
   const getLocation = async () => {
     try {
-      const position = await Geolocation.getCurrentPosition();
+      // Check and request permissions first
+      const permission = await Geolocation.checkPermissions();
+      
+      if (permission.location !== 'granted') {
+        const requested = await Geolocation.requestPermissions();
+        if (requested.location !== 'granted') {
+          toast.error("Location permission is required. Please enable it in your device settings.");
+          return;
+        }
+      }
+
+      // Get current position with timeout
+      const position = await Geolocation.getCurrentPosition({
+        timeout: 10000,
+        enableHighAccuracy: true
+      });
       const { latitude, longitude } = position.coords;
 
       // Reverse geocode to get address
-      const response = await fetch(
-        `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`
-      );
-      const data = await response.json();
+      try {
+        const response = await fetch(
+          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
+          { headers: { 'User-Agent': 'CleanifyApp' } }
+        );
+        const data = await response.json();
 
-      setLocation({
-        lat: latitude,
-        lng: longitude,
-        address: data.display_name || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
-      });
+        setLocation({
+          lat: latitude,
+          lng: longitude,
+          address: data.display_name || `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+        });
+      } catch (geocodeError) {
+        // If reverse geocoding fails, still use coordinates
+        setLocation({
+          lat: latitude,
+          lng: longitude,
+          address: `${latitude.toFixed(6)}, ${longitude.toFixed(6)}`,
+        });
+      }
+      
       toast.success("Location captured!");
     } catch (error: any) {
-      toast.error("Failed to get location");
+      console.error("Location error:", error);
+      if (error.message?.includes("timeout")) {
+        toast.error("Location request timed out. Please try again.");
+      } else if (error.message?.includes("denied")) {
+        toast.error("Location permission denied. Please enable it in your device settings.");
+      } else {
+        toast.error("Failed to get location. Please ensure location services are enabled.");
+      }
     }
   };
 
